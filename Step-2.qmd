@@ -1,0 +1,70 @@
+---
+title: "Step-2"
+author: "William Cuthbert"
+format: html
+---
+
+
+
+Potential quesion and statistical summary (involving function and iteration from the existing variable columns)
+
+"How do measles total and rubella total differ by region?"
+
+```{r}
+
+summary_diff <- function(measles, rubella) {
+  data.frame(
+    m_mean = mean(as.numeric(measles)),
+    r_mean = mean(as.numeric(rubella)),
+    differ = mean(as.numeric(measles)) - mean(as.numeric(rubella))
+  )
+}
+```
+
+
+```{r}
+region_diff <- cases_year |>
+  group_by(region, year) |>
+  summarise(summary_diff(measles_total, rubella_total), .groups = "drop")
+
+region_diff
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
