@@ -1,6 +1,6 @@
 ---
 title: "Project Step 2"
-author: "Sebastien Montgrain"
+author: "Sebastien Montgrain, Adrien Antonelli, William Cuthbert"
 format: 
   html:
     theme: minty
