@@ -1,0 +1,132 @@
+---
+title: "Project Step 3"
+author: "William Cuthbert, Sebastien Montgrain, Adrian Antonelli"
+format: html
+---
+
+**Project 1: Step 3**
+
+We wanted to round out our dataset by adding information about vaccinations and mortality for Measles by region.
+
+For our vaccination data, we utilized the WHO's data on vaccine reports from 2012-2024
+
+```{r}
+eval = FALSE
+
+library(readxl)
+library(dplyr)
+
+#Vaccine <- read_xlsx("Measles vaccination coverage 2026-15-04 12-34 UTC.xlsx")
+
+#Vaccine <- Vaccine |> filter(GROUP == "WHO_REGIONS") |> select("CODE", "YEAR", "ANTIGEN", "TARGET_NUMBER", "DOSES", "COVERAGE")
+
+#write.csv(Vaccine, "Vaccine.csv")
+getwd()
+
+```
+
+We have successfully created a csv file of the vaccination data.
+
+Up next, we will use web scraping
+
+```{r}
+eval = FALSE
+
+library(rvest)
+library(janitor)
+library(tidyr)
+library(stringr)
+
+url <- "https://www.cdc.gov/mmwr/volumes/71/wr/mm7147a1.htm"
+
+page <- read_html(url)
+
+tables <- page |> html_elements("table")
+
+table1 <- tables[[1]] |> 
+  html_table(fill = TRUE) |>
+  clean_names()
+
+```
+
+Now we have our table, but it's a huge mess, as we have issues such as multiple variables being placed in the same column, and rows indicating region that span all columns.
+
+To work through these issues, we consulted Chat GPT about how we could separate conjoined variables, and tidy up the region name rows.
+
+Initially we cleaned up variable names
+
+```{r}
+eval = FALSE
+
+table1 <- table1 |>
+  rename(
+    year_region = yr_who_region_no_of_countries_in_region,
+    measles_cases_pct = percentage,
+    measles_deaths_pct = percentage_2,
+    mortality_reduction_pct = percentage_3,
+    deaths_averted = percentage_4,
+    reported_cases_share = no_of_reported_measles_cases_percent_of_total_cases,
+    incidence = measles_incidence
+  )
+
+```
+
+We then were told that "\^\\d{4}" indicates the string to detect exactly 4 digits at the beginning of the string. This is essentially capturing the year.
+
+```{r}
+eval = FALSE
+
+table1 <- table1 |>
+  mutate(
+    is_year = str_detect(year_region, "^\\d{4}"),
+    region = if_else(!is_year, year_region, NA_character_)
+  ) |>
+  fill(region)
+
+table1 <- table1 |>
+  filter(is_year)
+
+```
+
+The regex section of code was explained to be the line separating the year from the number of countries per region (which were initially stuck in the same column).
+
+```{r}
+eval = FALSE
+
+table1 <- table1 |>
+  extract(
+    year_region,
+    into = c("year", "n_countries"),
+    regex = "(\\d{4}) \\((\\d+)\\)", 
+    convert = TRUE
+  )
+
+table1 <- table1 |>
+  mutate(across(
+    where(is.character),
+    ~ str_replace_all(., ",", "")
+  ))
+
+table1 <- table1 |>
+  mutate(across(
+    c(measles_cases_pct, measles_deaths_pct,
+      mortality_reduction_pct, deaths_averted,
+      reported_cases_share, incidence),
+    as.numeric
+  ))
+
+```
+
+Now we just need to filter, rename, and select relevant columns for our main data set, then save our newly configured measles coverage data.
+
+```{r}
+eval = FALSE
+
+coverage <- table1 |> 
+  filter(region != "Total (all regions)" & year != 2000) |>
+  select(year, measles_cases_pct, measles_deaths_pct, mortality_reduction_pct, deaths_averted, incidence, region)
+
+
+write.csv(coverage, "Coverage.csv")
+
+```
